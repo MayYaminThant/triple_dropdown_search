@@ -1,0 +1,16 @@
+name: triple_dropdown_search_example
+description: Example app for triple_dropdown_search.
+publish_to: none
+version: 1.0.0+1
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  triple_dropdown_search:
+    path: ../
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
