@@ -118,7 +118,6 @@ class TripleDropdownSearch<T, S, U> extends StatefulWidget {
     required this.searchCText,
   });
 
-
   @override
   State<TripleDropdownSearch<T, S, U>> createState() =>
       _DropdownState<T, S, U>();
@@ -141,10 +140,13 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
   @override
   void didUpdateWidget(covariant TripleDropdownSearch<T, S, U> old) {
     super.didUpdateWidget(old);
-    if (widget.isMultiSelect && !identical(old.selectedItems, widget.selectedItems)) {
+    if (widget.isMultiSelect &&
+        !identical(old.selectedItems, widget.selectedItems)) {
       _selectedMany = List<U>.of(widget.selectedItems);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _multiFieldKey.currentState?.didChange(List<U>.of(_selectedMany));
+        if (mounted) {
+          _multiFieldKey.currentState?.didChange(List<U>.of(_selectedMany));
+        }
       });
     }
     if (old.selectedItem != widget.selectedItem) {
@@ -197,7 +199,7 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
                 offset: Offset(0, above ? -4 : 4),
                 child: Material(
                   elevation: 8,
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(8),
                       bottomRight: Radius.circular(8)),
                   color: widget.popupColor,
@@ -211,7 +213,8 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
                         onChooseMany: (values) {
                           _close();
                           setState(() => _selectedMany = List<U>.of(values));
-                          _multiFieldKey.currentState?.didChange(List<U>.of(values));
+                          _multiFieldKey.currentState
+                              ?.didChange(List<U>.of(values));
                           widget.onMultiSelected?.call(List<U>.of(values));
                         },
                         onClose: _close,
@@ -229,55 +232,17 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
   }
 
   Widget _buildMulti(BuildContext context) => CompositedTransformTarget(
-    link: _link,
-    child: FormField<List<U>>(
-      key: _multiFieldKey,
-      initialValue: List<U>.of(_selectedMany),
-      enabled: widget.enable,
-      validator: widget.multiValidator,
-      onSaved: widget.onMultiSaved,
-      builder: (field) => InkWell(
-        onTap: !widget.enable || widget.readOnly ? null : _open,
-        child: InputDecorator(
-          isEmpty: (field.value ?? []).isEmpty,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.transparent,
-            isDense: true,
-            contentPadding: widget.contentPadding ?? const EdgeInsets.symmetric(vertical: 8),
-            border: widget.showUnderline ? const UnderlineInputBorder() : InputBorder.none,
-            enabledBorder: widget.showUnderline ? const UnderlineInputBorder() : InputBorder.none,
-            suffixIcon: widget.visibleSuffixProps ? const Icon(Icons.arrow_drop_down) : null,
-            errorText: field.errorText,
-          ),
-          child: Text(
-            (field.value ?? []).isEmpty
-              ? widget.dropDownHeader
-              : field.value!.map(widget.uAsString).join(', '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 15, color: (field.value ?? []).isEmpty ? Colors.grey : null),
-          ),
-        ),
-      ),
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) => widget.isMultiSelect
-    ? _buildMulti(context)
-    : CompositedTransformTarget(
         link: _link,
-        child: FormField<U>(
-          key: _fieldKey,
-          initialValue: _selected,
+        child: FormField<List<U>>(
+          key: _multiFieldKey,
+          initialValue: List<U>.of(_selectedMany),
           enabled: widget.enable,
-          validator: widget.validator,
-          onSaved: widget.onSaved,
+          validator: widget.multiValidator,
+          onSaved: widget.onMultiSaved,
           builder: (field) => InkWell(
             onTap: !widget.enable || widget.readOnly ? null : _open,
             child: InputDecorator(
-              isEmpty: field.value == null,
+              isEmpty: (field.value ?? []).isEmpty,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.transparent,
@@ -294,25 +259,72 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
                     ? const Icon(Icons.arrow_drop_down)
                     : null,
                 errorText: field.errorText,
-                errorStyle: const TextStyle(
-                    fontSize: 10,
-                    color: Colors.red,
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.bold),
               ),
               child: Text(
-                  field.value == null
-                      ? widget.dropDownHeader
-                      : widget.uAsString(field.value as U),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 15,
-                      color: field.value == null ? Colors.grey : null)),
+                (field.value ?? []).isEmpty
+                    ? widget.dropDownHeader
+                    : field.value!.map(widget.uAsString).join(', '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 15,
+                    color: (field.value ?? []).isEmpty ? Colors.grey : null),
+              ),
             ),
           ),
         ),
       );
+
+  @override
+  Widget build(BuildContext context) => widget.isMultiSelect
+      ? _buildMulti(context)
+      : CompositedTransformTarget(
+          link: _link,
+          child: FormField<U>(
+            key: _fieldKey,
+            initialValue: _selected,
+            enabled: widget.enable,
+            validator: widget.validator,
+            onSaved: widget.onSaved,
+            builder: (field) => InkWell(
+              onTap: !widget.enable || widget.readOnly ? null : _open,
+              child: InputDecorator(
+                isEmpty: field.value == null,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  isDense: true,
+                  contentPadding: widget.contentPadding ??
+                      const EdgeInsets.symmetric(vertical: 8),
+                  border: widget.showUnderline
+                      ? const UnderlineInputBorder()
+                      : InputBorder.none,
+                  enabledBorder: widget.showUnderline
+                      ? const UnderlineInputBorder()
+                      : InputBorder.none,
+                  suffixIcon: widget.visibleSuffixProps
+                      ? const Icon(Icons.arrow_drop_down)
+                      : null,
+                  errorText: field.errorText,
+                  errorStyle: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.red,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.bold),
+                ),
+                child: Text(
+                    field.value == null
+                        ? widget.dropDownHeader
+                        : widget.uAsString(field.value as U),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 15,
+                        color: field.value == null ? Colors.grey : null)),
+              ),
+            ),
+          ),
+        );
 }
 
 class _CustomPopup<T, S, U> extends StatefulWidget {
@@ -447,15 +459,15 @@ class _CustomPopupState<T, S, U> extends State<_CustomPopup<T, S, U>> {
     if (next != 0) _loadFilter();
   }
 
-  bool _isChecked(U value) => checked.any((item) =>
-      widget.config.compareFn?.call(item, value) ?? item == value);
+  bool _isChecked(U value) => checked.any(
+      (item) => widget.config.compareFn?.call(item, value) ?? item == value);
 
   void _toggle(U value) {
     setState(() {
       checked = List<U>.of(checked);
       if (_isChecked(value)) {
         checked.removeWhere((item) =>
-          widget.config.compareFn?.call(item, value) ?? item == value);
+            widget.config.compareFn?.call(item, value) ?? item == value);
       } else {
         checked.add(value);
       }
