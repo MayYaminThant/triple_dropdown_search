@@ -1,11 +1,33 @@
+
 name: triple_dropdown_search
 description: A Flutter dropdown with three linked searchable lists, async loading, pagination and multi-selection.
-version: 1.0.0
+version: 1.0.1
+
+homepage: https://github.com/MayYaminThant/triple_dropdown_search
 repository: https://github.com/MayYaminThant/triple_dropdown_search
+issue_tracker: https://github.com/MayYaminThant/triple_dropdown_search/issues
+
 environment:
   sdk: '>=3.3.0 <4.0.0'
   flutter: '>=3.19.0'
+
 dependencies:
   flutter:
     sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
   flutter_lints: ^5.0.0
+
+platforms:
+  android:
+  ios:
+  web:
+  windows:
+  macos:
+  linux:
+
+screenshots:
+  - description: 'Triple Dropdown Search single-selection preview.'
+    path: screenshots/single_selection.png

@@ -5,7 +5,22 @@ A customizable Flutter dropdown with three-level cascading filters, asynchronous
 
 ## Preview
 
-![Triple Dropdown Search](screenshots/single_selection.png)
+![Triple Dropdown Search Preview](https://raw.githubusercontent.com/MayYaminThant/triple_dropdown_search/main/screenshots/single_selection.png)
+
+## Platform Support
+
+Triple Dropdown Search is a pure Flutter widget package.
+
+| Platform | Support |
+|----------|---------|
+| Android  | ✅ |
+| iOS      | ✅ |
+| Web      | ✅ |
+| Windows  | ✅ |
+| macOS    | ✅ |
+| Linux    | ✅ |
+
+No platform-specific native configuration is required.
 
 ## Features
 
