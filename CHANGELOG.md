@@ -1,21 +1,19 @@
+
 # Changelog
+
+## 1.0.1
+
+### Added
+- Added platform support declarations for Android, iOS, Web, Windows, macOS, and Linux.
+- Added package preview screenshot for pub.dev.
+- Updated README documentation with a preview image.
 
 ## 1.0.0
 
-Initial release of Triple Dropdown Search.
-
 ### Features
-
-- Support for three generic model types (`T`, `S`, `U`).
-- Three-level cascading dropdown filtering.
-- Single selection and multi-selection modes.
-- Asynchronous data loading.
-- Search functionality with debounce support.
-- Pagination and lazy loading.
-- Customizable dropdown item builder.
-- Customizable popup background color and dimensions.
+- Initial release of Triple Dropdown Search.
+- Three-level cascading dropdown filters.
+- Asynchronous search and pagination.
+- Single-selection and multi-selection support.
+- Customizable popup appearance.
 - Form validation support.
-- Customizable search hints and filter labels.
-- Selected item comparison using a custom comparison function.
-- Popup anchored to the dropdown field.
-- Example Flutter application demonstrating single and multi-selection.
