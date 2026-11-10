@@ -16,11 +16,11 @@ class TripleDropdownSearch<T, S, U> extends StatefulWidget {
   final FormFieldValidator<List<U>>? multiValidator;
   final FormFieldSetter<List<U>>? onMultiSaved;
   final bool isMultiSelect;
-  final TLoader<T> loadT;
-  final SLoader<T, S> loadS;
+  final TLoader<T>? loadT;
+  final SLoader<T, S>? loadS;
   final ULoader<T, S, U> loadU;
-  final String Function(T) tAsString;
-  final String Function(S) sAsString;
+  final String Function(T)? tAsString;
+  final String Function(S)? sAsString;
   final String Function(U) uAsString;
   final bool Function(U, U)? compareFn;
   final ValueChanged<U?>? onSelected;
@@ -48,11 +48,11 @@ class TripleDropdownSearch<T, S, U> extends StatefulWidget {
     this.multiValidator,
     this.onMultiSaved,
     this.isMultiSelect = false,
-    required this.loadT,
-    required this.loadS,
+    this.loadT,
+    this.loadS,
     required this.loadU,
-    required this.tAsString,
-    required this.sAsString,
+    this.tAsString,
+    this.sAsString,
     required this.uAsString,
     this.compareFn,
     this.onSelected,
@@ -71,13 +71,16 @@ class TripleDropdownSearch<T, S, U> extends StatefulWidget {
     this.popupMaxHeight = 460,
     this.popupMaxWidth = 600,
     this.dropDownHeader = 'Select',
-    required this.allTText,
-    required this.allSText,
-    required this.allCText,
-    required this.searchTText,
-    required this.searchSText,
-    required this.searchCText,
-  });
+    this.allTText = 'All T',
+    this.allSText = 'All S',
+    this.allCText = 'All',
+    this.searchTText = 'Search T...',
+    this.searchSText = 'Search S...',
+    this.searchCText = 'Search...',
+  })  : assert(loadT == null || tAsString != null,
+            'tAsString is required when loadT is provided'),
+        assert(loadS == null || sAsString != null,
+            'sAsString is required when loadS is provided');
 
   const TripleDropdownSearch.multiSelection({
     super.key,
@@ -87,11 +90,11 @@ class TripleDropdownSearch<T, S, U> extends StatefulWidget {
     this.multiValidator,
     this.onMultiSaved,
     this.isMultiSelect = true,
-    required this.loadT,
-    required this.loadS,
+    this.loadT,
+    this.loadS,
     required this.loadU,
-    required this.tAsString,
-    required this.sAsString,
+    this.tAsString,
+    this.sAsString,
     required this.uAsString,
     this.compareFn,
     this.onSelected,
@@ -110,13 +113,21 @@ class TripleDropdownSearch<T, S, U> extends StatefulWidget {
     this.popupMaxHeight = 460,
     this.popupMaxWidth = 600,
     this.dropDownHeader = 'Select',
-    required this.allTText,
-    required this.allSText,
-    required this.allCText,
-    required this.searchTText,
-    required this.searchSText,
-    required this.searchCText,
-  });
+    this.allTText = 'All T',
+    this.allSText = 'All S',
+    this.allCText = 'All',
+    this.searchTText = 'Search T...',
+    this.searchSText = 'Search S...',
+    this.searchCText = 'Search...',
+  })  : assert(loadT == null || tAsString != null,
+            'tAsString is required when loadT is provided'),
+        assert(loadS == null || sAsString != null,
+            'sAsString is required when loadS is provided');
+
+  /// U-only when neither filter loader exists, S+U when loadS exists,
+  /// and T+S+U when both loadT and loadS exist.
+  bool get hasT => loadT != null;
+  bool get hasS => loadS != null;
 
   @override
   State<TripleDropdownSearch<T, S, U>> createState() =>
@@ -130,6 +141,16 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
   List<U> _selectedMany = [];
   OverlayEntry? _entry;
   U? _selected;
+  double _popupHeight = 160;
+
+  void _updatePopupHeight(double value) {
+    if (!mounted || _entry == null) return;
+    if ((_popupHeight - value).abs() < 1) return;
+
+    _popupHeight = value;
+    _entry?.markNeedsBuild();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -179,10 +200,11 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
     final size = render.size;
     final screen = MediaQuery.sizeOf(context);
     final bottomSpace = screen.height - origin.dy - size.height;
-    final above = bottomSpace < 280 && origin.dy > bottomSpace;
+    final above = bottomSpace < (screen.height / 3) && origin.dy > bottomSpace;
     final available = (above ? origin.dy : bottomSpace) - 12;
-    final height = available.clamp(150.0, widget.popupMaxHeight).toDouble();
-    final width = size.width.clamp(260.0, widget.popupMaxWidth).toDouble();
+    final height = available.clamp(1.0, widget.popupMaxHeight).toDouble();
+    _popupHeight = height < 160 ? height : 160;
+    final width = size.width.clamp(1.0, widget.popupMaxWidth).toDouble();
     _entry = OverlayEntry(
         builder: (overlayContext) => Stack(children: [
               Positioned.fill(
@@ -205,8 +227,9 @@ class _DropdownState<T, S, U> extends State<TripleDropdownSearch<T, S, U>> {
                   color: widget.popupColor,
                   child: SizedBox(
                       width: width,
-                      height: height,
+                      height: _popupHeight.clamp(1.0, height).toDouble(),
                       child: _CustomPopup<T, S, U>(
+                        onHeightChanged: _updatePopupHeight,
                         config: widget,
                         selected: _selected,
                         selectedMany: List<U>.of(_selectedMany),
@@ -334,6 +357,7 @@ class _CustomPopup<T, S, U> extends StatefulWidget {
   final ValueChanged<List<U>> onChooseMany;
   final ValueChanged<U> onChoose;
   final VoidCallback onClose;
+  final ValueChanged<double> onHeightChanged;
   const _CustomPopup({
     required this.config,
     required this.selected,
@@ -341,6 +365,7 @@ class _CustomPopup<T, S, U> extends StatefulWidget {
     required this.onChooseMany,
     required this.onChoose,
     required this.onClose,
+    required this.onHeightChanged,
   });
   @override
   State<_CustomPopup<T, S, U>> createState() => _CustomPopupState<T, S, U>();
@@ -360,6 +385,54 @@ class _CustomPopupState<T, S, U> extends State<_CustomPopup<T, S, U>> {
   Timer? timer;
   final scroll = ScrollController();
   int view = 0;
+
+  void _calculatePopupHeight() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final c = widget.config;
+      final int count = view == 0
+          ? uList.length
+          : view == 1
+              ? tList.length
+              : sList.length;
+
+      const double itemHeight = 56;
+      const double searchHeight = 48;
+      const double filterHeight = 48;
+      const double allButtonHeight = 48;
+      const double footerHeight = 48;
+      const double loadingHeight = 48;
+
+      final bool hasSearch = view != 0 || c.showSearchBox;
+      final bool hasFilter = view == 0 && (c.hasT || c.hasS);
+      final bool hasAllButton = view != 0;
+      final bool hasClearButton =
+          view == 0 && (tObject != null || sObject != null);
+      final bool hasFooter = view == 0 && c.isMultiSelect;
+
+      final double fixedHeight = (hasSearch ? searchHeight : 0) +
+          (hasFilter ? filterHeight : 0) +
+          (hasAllButton ? allButtonHeight : 0) +
+          (hasClearButton ? allButtonHeight : 0) +
+          (hasFooter ? footerHeight : 0) +
+          (error != null ? 48 : 0);
+
+      final double listHeight = (count * itemHeight) +
+          ((loading || loadingFilter) ? loadingHeight : 0);
+
+      final bool showNoData =
+          view == 0 && !loading && uList.isEmpty && error == null;
+
+      final double noDataHeight = showNoData ? 90.0 : 0.0;
+
+      final double totalHeight = fixedHeight + listHeight + noDataHeight;
+
+      widget.onHeightChanged(
+        totalHeight.clamp(fixedHeight + 1, c.popupMaxHeight).toDouble(),
+      );
+    });
+  }
 
   @override
   void initState() {
@@ -415,10 +488,14 @@ class _CustomPopupState<T, S, U> extends State<_CustomPopup<T, S, U>> {
         page++;
         hasMore = result.isNotEmpty;
       });
+      _calculatePopupHeight();
     } catch (e) {
       if (mounted && id == requestId) setState(() => error = '$e');
     } finally {
-      if (mounted && id == requestId) setState(() => loading = false);
+      if (mounted && id == requestId) {
+        setState(() => loading = false);
+        _calculatePopupHeight();
+      }
     }
   }
 
@@ -430,13 +507,13 @@ class _CustomPopupState<T, S, U> extends State<_CustomPopup<T, S, U>> {
       error = null;
     });
     try {
-      if (which == 1) {
-        final data = await widget.config.loadT(tKeyword);
+      if (which == 1 && widget.config.hasT) {
+        final data = await widget.config.loadT!(tKeyword);
         if (mounted && id == filterId && view == which) {
           setState(() => tList = data);
         }
-      } else if (which == 2) {
-        final data = await widget.config.loadS(sKeyword, tObject);
+      } else if (which == 2 && widget.config.hasS) {
+        final data = await widget.config.loadS!(sKeyword, tObject);
         if (mounted && id == filterId && view == which) {
           setState(() => sList = data);
         }
@@ -449,6 +526,8 @@ class _CustomPopupState<T, S, U> extends State<_CustomPopup<T, S, U>> {
   }
 
   void _switch(int next) {
+    if (next == 1 && !widget.config.hasT) return;
+    if (next == 2 && !widget.config.hasS) return;
     timer?.cancel();
     ++filterId;
     setState(() {
@@ -508,163 +587,168 @@ class _CustomPopupState<T, S, U> extends State<_CustomPopup<T, S, U>> {
   @override
   Widget build(BuildContext context) {
     final c = widget.config;
-    return Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(children: [
-          Row(children: [
-            Expanded(
-                child: Text(
-                    view == 1
-                        ? c.searchTText
-                        : view == 2
-                            ? c.searchSText
-                            : c.searchCText,
-                    style: const TextStyle(fontWeight: FontWeight.bold))),
-            if (view != 0)
-              IconButton(
-                  onPressed: () => _switch(0),
-                  icon: const Icon(Icons.arrow_back))
-            else
-              IconButton(
-                  onPressed: widget.onClose, icon: const Icon(Icons.close)),
-          ]),
-          if (view == 0) ...[
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      removeBottom: true,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        if (view == 0) ...[
+          if (c.hasT || c.hasS)
             Row(children: [
-              _filterButton(
-                  tObject == null ? c.allTText : c.tAsString(tObject as T),
-                  () => _switch(1)),
-              const SizedBox(width: 6),
-              _filterButton(
-                  sObject == null ? c.allSText : c.sAsString(sObject as S),
-                  tObject == null ? null : () => _switch(2)),
+              if (c.hasT) ...[
+                _filterButton(
+                  tObject == null ? c.allTText : c.tAsString!(tObject as T),
+                  () => _switch(1),
+                ),
+                if (c.hasS) const SizedBox(width: 6),
+              ],
+              if (c.hasS)
+                _filterButton(
+                  sObject == null ? c.allSText : c.sAsString!(sObject as S),
+                  () => _switch(2),
+                ),
             ]),
-            if (tObject != null || sObject != null)
-              Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                      onPressed: () => _tChanged(null),
-                      child: const Text('Clear filters'))),
-            if (c.showSearchBox)
-              TextField(
-                decoration: InputDecoration(
-                    hintText: c.searchCText,
-                    prefixIcon: const Icon(Icons.search),
-                    isDense: true,
-                    border: const OutlineInputBorder()),
-                onChanged: (text) {
-                  keyword = text;
-                  _debounce(() => _loadUList(reset: true));
-                },
-              ),
-          ] else ...[
+          if (tObject != null || sObject != null)
+            Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                    onPressed: () => _tChanged(null),
+                    child: const Text('Clear filters'))),
+          if (c.showSearchBox)
             TextField(
               decoration: InputDecoration(
-                  hintText: view == 1 ? c.searchTText : c.searchSText,
+                  hintText: c.searchCText,
                   prefixIcon: const Icon(Icons.search),
                   isDense: true,
                   border: const OutlineInputBorder()),
               onChanged: (text) {
-                if (view == 1) {
-                  tKeyword = text;
-                } else {
-                  sKeyword = text;
-                }
-                ++filterId;
-                _debounce(_loadFilter);
+                keyword = text;
+                _debounce(() => _loadUList(reset: true));
               },
             ),
-            Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                    onPressed: () =>
-                        view == 1 ? _tChanged(null) : _sChanged(null),
-                    child: Text(view == 1 ? c.allTText : c.allSText))),
-          ],
-          if (error != null)
-            Row(children: [
-              Expanded(
-                  child: Text(error!,
-                      maxLines: 2,
-                      style: const TextStyle(color: Colors.red, fontSize: 12))),
-              IconButton(
-                  onPressed:
-                      view == 0 ? () => _loadUList(reset: true) : _loadFilter,
-                  icon: const Icon(Icons.refresh)),
-            ]),
-          Expanded(
-              child: view == 0
-                  ? ListView.builder(
-                      controller: scroll,
-                      itemCount: uList.length + (loading ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == uList.length) {
-                          return const Center(
-                              child: Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: CircularProgressIndicator()));
-                        }
-                        final u = uList[index];
-                        final selected = c.isMultiSelect
-                            ? _isChecked(u)
-                            : widget.selected != null &&
-                                (c.compareFn?.call(u, widget.selected as U) ??
-                                    u == widget.selected);
-                        return InkWell(
-                            onTap: () => c.isMultiSelect
-                                ? _toggle(u)
-                                : widget.onChoose(u),
-                            child: Row(children: [
-                              if (c.isMultiSelect)
-                                Checkbox(
-                                  value: selected,
-                                  onChanged: (_) => _toggle(u),
-                                ),
-                              Expanded(
-                                child: c.itemBuilder
-                                        ?.call(context, u, false, selected) ??
-                                    ListTile(
-                                        title: Text(c.uAsString(u)),
-                                        selected: selected),
+        ] else ...[
+          TextField(
+            decoration: InputDecoration(
+                hintText: view == 1 ? c.searchTText : c.searchSText,
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                border: const OutlineInputBorder()),
+            onChanged: (text) {
+              if (view == 1) {
+                tKeyword = text;
+              } else {
+                sKeyword = text;
+              }
+              ++filterId;
+              _debounce(_loadFilter);
+            },
+          ),
+          Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                  onPressed: () =>
+                      view == 1 ? _tChanged(null) : _sChanged(null),
+                  child: Text(view == 1 ? c.allTText : c.allSText))),
+        ],
+
+        if (error != null)
+          Row(children: [
+            Expanded(
+                child: Text(error!,
+                    maxLines: 2,
+                    style: const TextStyle(color: Colors.red, fontSize: 12))),
+            IconButton(
+                onPressed:
+                    view == 0 ? () => _loadUList(reset: true) : _loadFilter,
+                icon: const Icon(Icons.refresh)),
+          ]),
+
+        Expanded(
+            child: view == 0
+                ? ListView.builder(
+                    padding: EdgeInsets.zero,
+                    controller: scroll,
+                    itemCount: uList.length + (loading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == uList.length) {
+                        return const Center(
+                            child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: CircularProgressIndicator()));
+                      }
+                      final u = uList[index];
+                      final selected = c.isMultiSelect
+                          ? _isChecked(u)
+                          : widget.selected != null &&
+                              (c.compareFn?.call(u, widget.selected as U) ??
+                                  u == widget.selected);
+                      return InkWell(
+                          onTap: () =>
+                              c.isMultiSelect ? _toggle(u) : widget.onChoose(u),
+                          child: Row(children: [
+                            if (c.isMultiSelect)
+                              Checkbox(
+                                value: selected,
+                                onChanged: (_) => _toggle(u),
                               ),
-                            ]));
-                      },
-                    )
-                  : ListView.builder(
-                      itemCount: (view == 1 ? tList.length : sList.length) +
-                          (loadingFilter ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (view == 1) {
-                          if (index == tList.length) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }
-                          final value = tList[index];
-                          return ListTile(
-                              title: Text(c.tAsString(value)),
-                              onTap: () => _tChanged(value));
-                        }
-                        if (index == sList.length) {
+                            Expanded(
+                              child: c.itemBuilder
+                                      ?.call(context, u, false, selected) ??
+                                  ListTile(
+                                    visualDensity:
+                                        const VisualDensity(vertical: -0.5),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                    minVerticalPadding: 0,
+                                    title: Text(c.uAsString(u)),
+                                    selected: selected,
+                                  ),
+                            ),
+                          ]));
+                    },
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: (view == 1 ? tList.length : sList.length) +
+                        (loadingFilter ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (view == 1) {
+                        if (index == tList.length) {
                           return const Center(
                               child: CircularProgressIndicator());
                         }
-                        final value = sList[index];
+                        final value = tList[index];
                         return ListTile(
-                            title: Text(c.sAsString(value)),
-                            onTap: () => _sChanged(value));
-                      },
-                    )),
-          if (view == 0 && !loading && uList.isEmpty)
-            const Text('No datas found'),
-          if (view == 0 && c.isMultiSelect)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => widget.onChooseMany(List<U>.of(checked)),
-                child: Text('Done (${checked.length})'),
-              ),
+                            title: Text(c.tAsString!(value)),
+                            onTap: () => _tChanged(value));
+                      }
+                      if (index == sList.length) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final value = sList[index];
+                      return ListTile(
+                          title: Text(c.sAsString!(value)),
+                          onTap: () => _sChanged(value));
+                    },
+                  )),
+        if (view == 0 && !loading && uList.isEmpty && error == null)
+          const SizedBox(
+            height: 90,
+            child: Center(
+              child: Text('No data found'),
             ),
-          // if (view == 0 && !loading && hasMore && uList.isNotEmpty)
-          //   TextButton(onPressed: _loadUList, child: const Text('Load more')),
-        ]));
+          ),
+        if (view == 0 && c.isMultiSelect)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => widget.onChooseMany(List<U>.of(checked)),
+              child: Text('Done (${checked.length})'),
+            ),
+          ),
+        // if (view == 0 && !loading && hasMore && uList.isNotEmpty)
+        //   TextButton(onPressed: _loadUList, child: const Text('Load more')),
+      ]),
+    );
   }
 }
